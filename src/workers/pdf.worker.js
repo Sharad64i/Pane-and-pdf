@@ -86,7 +86,17 @@ const tasks = {
       const map = (u, v) => (r === 90 ? { x: v * W, y: u * H } : r === 180 ? { x: W - u * W, y: v * H } : r === 270 ? { x: W - v * W, y: H - u * H } : { x: u * W, y: H - v * H });
       const dispW = r % 180 ? H : W;
       const rect = (x, y, w, h) => { const a = map(x, y), b = map(x + w, y + h); return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), width: Math.abs(a.x - b.x), height: Math.abs(a.y - b.y) }; };
-      const write = async (u, v) => { const q = map(u, v); page.drawText(it.text, { x: q.x, y: q.y, size: it.size, font: await getFont(it), color: hex(it.color), rotate: degrees(r) }); };
+      const write = async (u, v) => {
+        const q = map(u, v), font = await getFont(it);
+        page.drawText(it.text, { x: q.x, y: q.y, size: it.size, font, color: hex(it.color), rotate: degrees(r) });
+        const textWidth = font.widthOfTextAtSize(it.text, it.size);
+        const dispH = r % 180 ? W : H;
+        for (const [enabled, offset] of [[it.underline, it.size * 0.12], [it.strike, -it.size * 0.3]]) {
+          if (!enabled) continue;
+          const vLine = v + offset / dispH;
+          page.drawLine({ start: map(u, vLine), end: map(u + textWidth / dispW, vLine), thickness: 0.6, color: hex(it.color) });
+        }
+      };
       try {
         if (it.type === 'text' && it.text) await write(it.x, it.y);
         else if (it.type === 'edit') {
@@ -124,3 +134,4 @@ self.onmessage = async ({ data: { id, task, payload } }) => {
     self.postMessage({ id, type: 'error', message: e?.message || 'Processing failed.' });
   }
 };
+

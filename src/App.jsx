@@ -13,6 +13,7 @@ const MergeSplit = lazy(() => import('./pages/MergeSplit'));
 const Organize = lazy(() => import('./pages/Organize'));
 const Annotate = lazy(() => import('./pages/Annotate'));
 const Compress = lazy(() => import('./pages/Compress'));
+const Studio = lazy(() => import('./pages/Studio'));
 
 export default function App() {
   return (
@@ -28,9 +29,11 @@ export default function App() {
           <Route path="organize/:id?" element={<Organize />} />
           <Route path="annotate/:id?" element={<Annotate />} />
           <Route path="compress" element={<Compress />} />
+          <Route path="studio" element={<Studio />} />
           <Route path="*" element={<Home />} />
         </Route>
       </Routes>
     </Suspense>
   );
 }
+

@@ -1,6 +1,7 @@
-import { FolderOpen, ImagePlus, Image, Layers, LayoutGrid, Minimize2, Pencil, Scissors } from 'lucide-react';
+import { FolderOpen, ImagePlus, Image, Layers, LayoutGrid, Minimize2, Pencil, Scissors, FilePlus2 } from 'lucide-react';
 // Single source for the Home tiles and the "Tools" menu. Routes live in src/App.jsx.
 export const TOOLS = [
+  { to: '/studio', title: 'Document studio', desc: 'Create and format a document, then export it as PDF.', icon: FilePlus2 },
   { to: '/annotate', title: 'Annotate', desc: 'Add text, highlights and drawings you can keep editing.', icon: Pencil },
   { to: '/merge-split', title: 'Merge PDFs', desc: 'Combine files in the order you choose.', icon: Layers },
   { to: '/merge-split?tab=split', title: 'Split a PDF', desc: 'One file per page, or by page ranges.', icon: Scissors },
@@ -10,3 +11,4 @@ export const TOOLS = [
   { to: '/pdf-to-images', title: 'PDF to images', desc: 'Save every page as PNG or JPG.', icon: Image },
   { to: '/library', title: 'Open library', desc: 'Everything you have saved in this browser.', icon: FolderOpen },
 ];
+
