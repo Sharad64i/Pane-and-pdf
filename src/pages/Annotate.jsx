@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronLeft, ChevronRight, Highlighter, Italic, MousePointer2, Pencil, Redo2, Square, TextCursorInput, Trash2, Type, Undo2 } from 'lucide-react';
+import { AlignCenter, AlignLeft, AlignRight, ArrowLeft, Bold, ChevronLeft, ChevronRight, Highlighter, Italic, MousePointer2, Pencil, Redo2, Square, TextCursorInput, Trash2, Type, Undo2, Underline, Strikethrough } from 'lucide-react';
 import { Alert, Button, Card, Spinner } from '../ui';
 import PdfPage from '../components/PdfPage';
 import PickDocument from '../components/PickDocument';
@@ -32,6 +32,7 @@ function Editor({ id }) {
   const [tool, setTool] = useState('select');
   const [color, setColor] = useState('#e11d48');
   const [sel, setSel] = useState(null);
+  const [selectedRun, setSelectedRun] = useState(null); // A click selects an existing PDF line without modifying it.
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState(null);
   const [dims, setDims] = useState({ w: 600, h: 800 });
@@ -76,7 +77,7 @@ function Editor({ id }) {
   const selected = items.find((i) => i.id === sel);
   const editItem = items.find((i) => i.id === editing);
   const textual = selected && (selected.type === 'text' || selected.type === 'edit');
-  const goPage = (n) => { setPage(n); setSel(null); setEditing(null); setRuns([]); setRendered(-1); };
+  const goPage = (n) => { setPage(n); setSel(null); setSelectedRun(null); setEditing(null); setRuns([]); setRendered(-1); };
   const setField = (k, v, key = null) => { snap(key ? `${sel}:${k}` : null); patch(sel, { [k]: v }); };
 
   useEffect(() => {
@@ -96,16 +97,20 @@ function Editor({ id }) {
   // click on a detected line of existing text -> cover it with the page background and let the user retype it
   const startEdit = (r) => {
     const existing = items.find((i) => i.type === 'edit' && i.runKey === r.key);
-    if (existing) { setSel(existing.id); setEditing(existing.id); return; }
+    if (existing) { setSelectedRun(null); setSel(existing.id); setEditing(existing.id); return; }
     const { bg, fg } = sampleBoxColors(canvasEl.current, { x: r.x * dims.w, y: r.y * dims.h, w: r.w * dims.w, h: r.h * dims.h });
     snap();
-    const it = { id: ++nextId.current, page, type: 'edit', runKey: r.key, orig: r.str, text: r.str, x: r.x, y: r.y, w: r.w, h: r.h, by: r.by, size: r.size, color: fg, bg, family: r.family, bold: r.bold, italic: r.italic, align: 'left' };
-    setItems((c) => [...c, it]); setSel(it.id); setEditing(it.id);
+    const it = { id: ++nextId.current, page, type: 'edit', runKey: r.key, orig: r.str, text: r.str, x: r.x, y: r.y, w: r.w, h: r.h, by: r.by, size: r.size, color: fg, bg, family: r.family, bold: r.bold, italic: r.italic, underline: false, strike: false, align: 'left' };
+    setItems((c) => [...c, it]); setSelectedRun(null); setSel(it.id); setEditing(it.id);
+  };
+  const selectRun = (r) => {
+    const existing = items.find((i) => i.type === 'edit' && i.runKey === r.key);
+    setSelectedRun(existing ? null : r); setSel(existing?.id ?? null); setEditing(null);
   };
 
   const down = (e) => { // pointer down on empty page
     const [x, y] = pt(e);
-    if (tool === 'select' || tool === 'edittext') { setSel(null); setEditing(null); return; }
+    if (tool === 'select' || tool === 'edittext') { setSel(null); setSelectedRun(null); setEditing(null); return; }
     e.currentTarget.setPointerCapture(e.pointerId);
     if (tool === 'text') {
       snap();
@@ -166,7 +171,7 @@ function Editor({ id }) {
     }
     return { x: it.x * W, y: it.y * H, w: it.w * W, h: it.h * H };
   };
-  const tp = (it) => ({ fontSize: it.size * SCALE, fill: it.color, fontFamily: CSS_FAMILY[it.family || 'sans'], fontWeight: it.bold ? 700 : 400, fontStyle: it.italic ? 'italic' : 'normal' });
+  const tp = (it) => ({ fontSize: it.size * SCALE, fill: it.color, fontFamily: CSS_FAMILY[it.family || 'sans'], fontWeight: it.bold ? 700 : 400, fontStyle: it.italic ? 'italic' : 'normal', textDecoration: [it.underline && 'underline', it.strike && 'line-through'].filter(Boolean).join(' ') || undefined });
   const visual = (it, hideText) => {
     if (it.type === 'edit') {
       const ax = it.align === 'center' ? (it.x + it.w / 2) * W : it.align === 'right' ? (it.x + it.w) * W : it.x * W;
@@ -195,7 +200,7 @@ function Editor({ id }) {
   };
   const inputStyle = (it) => {
     const fs = it.size * SCALE, isEdit = it.type === 'edit';
-    return { left: it.x * W - 2, top: isEdit ? it.by * H - fs * 0.98 - 1 : it.y * H - fs, fontSize: fs, lineHeight: 1.25, color: it.color, fontFamily: CSS_FAMILY[it.family || 'sans'], fontWeight: it.bold ? 700 : 400, fontStyle: it.italic ? 'italic' : 'normal', textAlign: it.align || 'left',
+    return { left: it.x * W - 2, top: isEdit ? it.by * H - fs * 0.98 - 1 : it.y * H - fs, fontSize: fs, lineHeight: 1.25, color: it.color, fontFamily: CSS_FAMILY[it.family || 'sans'], fontWeight: it.bold ? 700 : 400, fontStyle: it.italic ? 'italic' : 'normal', textDecoration: [it.underline && 'underline', it.strike && 'line-through'].filter(Boolean).join(' ') || 'none', textAlign: it.align || 'left',
       background: isEdit ? it.bg : 'rgba(255,255,255,.9)', width: Math.max(80, isEdit ? it.w * W : 0, it.text.length * fs * 0.6 + 16) };
   };
   const fieldCls = 'mt-1.5 block rounded-ui border border-line bg-surface px-2.5 py-2 text-sm font-normal';
@@ -236,8 +241,8 @@ function Editor({ id }) {
                 onPointerDown={down} onPointerMove={move} onPointerUp={up}>
                 {mine.map(shape)}
                 {tool === 'edittext' && runs.map((r) => (
-                  <rect key={r.key} x={r.x * W} y={r.y * H} width={r.w * W} height={r.h * H} fill="transparent" stroke="#2563eb" strokeWidth={1} strokeOpacity={hover === r.key ? 1 : 0.3}
-                    style={{ cursor: 'text' }} onPointerEnter={() => setHover(r.key)} onPointerLeave={() => setHover(null)} onPointerDown={(e) => { e.stopPropagation(); startEdit(r); }} />
+                  <rect key={r.key} x={r.x * W} y={r.y * H} width={r.w * W} height={r.h * H} fill="transparent" stroke="#2563eb" strokeWidth={1} strokeOpacity={selectedRun?.key === r.key || hover === r.key ? 1 : 0.3}
+                    style={{ cursor: 'text' }} onPointerEnter={() => setHover(r.key)} onPointerLeave={() => setHover(null)} onPointerDown={(e) => { e.stopPropagation(); selectRun(r); }} />
                 ))}
                 {draft && visual(draft)}
               </svg>
@@ -254,10 +259,17 @@ function Editor({ id }) {
               <span className="text-sm">Page {page + 1} / {pdf.numPages}</span>
               <Button size="icon" disabled={page >= pdf.numPages - 1} aria-label="Next page" onClick={() => goPage(page + 1)}><ChevronRight size={16} /></Button>
             </div>
-            <h2 className="font-display text-lg font-bold">{selected ? { edit: 'Edited text', text: 'Text', rect: 'Box', highlight: 'Highlight', ink: 'Drawing' }[selected.type] : 'Color'}</h2>
-            <div className="flex gap-2.5">{COLORS.map((c) => (
+            <h2 className="font-display text-lg font-bold">{selectedRun ? 'Selected PDF text' : selected ? { edit: 'Edited text', text: 'Text', rect: 'Box', highlight: 'Highlight', ink: 'Drawing' }[selected.type] : 'Color'}</h2>
+            {selectedRun && (
+              <div className="space-y-3 rounded-ui border border-line bg-surface-2 p-3">
+                <p className="break-words text-sm text-fg">“{selectedRun.str}”</p>
+                <p className="text-xs text-muted">Original appearance is unchanged. Choose Edit text to create an overlay and adjust its formatting.</p>
+                <Button size="sm" variant="primary" className="w-full" onClick={() => startEdit(selectedRun)}>Edit text</Button>
+              </div>
+            )}
+            {!selectedRun && <div className="flex gap-2.5">{COLORS.map((c) => (
               <button key={c} type="button" aria-label={`Color ${c}`} onClick={() => { setColor(c); if (selected) setField('color', c); }}
-                className={`h-7 w-7 rounded-full border-[3px] ${(selected ? selected.color : color) === c ? 'border-fg' : 'border-surface ring-1 ring-line'}`} style={{ background: c }} />))}</div>
+                className={`h-7 w-7 rounded-full border-[3px] ${(selected ? selected.color : color) === c ? 'border-fg' : 'border-surface ring-1 ring-line'}`} style={{ background: c }} />))}</div>}
             {textual && (
               <>
                 <label className="block text-sm font-medium">Wording
@@ -273,6 +285,8 @@ function Editor({ id }) {
                 <div className="flex flex-wrap gap-1.5">
                   <Button size="icon" variant={selected.bold ? 'primary' : 'secondary'} aria-pressed={!!selected.bold} aria-label="Bold" onClick={() => setField('bold', !selected.bold)}><Bold size={14} /></Button>
                   <Button size="icon" variant={selected.italic ? 'primary' : 'secondary'} aria-pressed={!!selected.italic} aria-label="Italic" onClick={() => setField('italic', !selected.italic)}><Italic size={14} /></Button>
+                  <Button size="icon" variant={selected.underline ? 'primary' : 'secondary'} aria-pressed={!!selected.underline} aria-label="Underline" onClick={() => setField('underline', !selected.underline)}><Underline size={14} /></Button>
+                  <Button size="icon" variant={selected.strike ? 'primary' : 'secondary'} aria-pressed={!!selected.strike} aria-label="Strikethrough" onClick={() => setField('strike', !selected.strike)}><Strikethrough size={14} /></Button>
                   {selected.type === 'edit' && [['left', AlignLeft], ['center', AlignCenter], ['right', AlignRight]].map(([a, Icon]) => (
                     <Button key={a} size="icon" variant={(selected.align || 'left') === a ? 'primary' : 'secondary'} aria-label={`Align ${a}`} onClick={() => setField('align', a)}><Icon size={14} /></Button>))}
                 </div>
@@ -288,7 +302,7 @@ function Editor({ id }) {
                 <Button size="sm" variant="ghost" onClick={() => remove(selected.id)}>Restore original</Button>
               </div>
             ) : selected ? <Button variant="danger" className="w-full" onClick={() => remove(selected.id)}><Trash2 size={14} /> Delete</Button>
-              : <p className="text-sm text-muted">Pick <b>Edit existing text</b> and click a line on the page to change, restyle or delete it. Use Select to move things you added.</p>}
+              : !selectedRun && <p className="text-sm text-muted">Pick <b>Edit existing text</b> and click a line to select it. Its appearance will stay unchanged until you choose <b>Edit text</b>. Use Select to move things you added.</p>}
             <p className="border-t border-line pt-3 text-xs leading-relaxed text-muted">Edited text is placed over a patch that hides the original, using standard PDF fonts, so the look can differ slightly. The original text stays in the file's data underneath, so don't use this to hide sensitive information. Ctrl+Z undoes; Delete removes the selected item.</p>
           </aside>
         </div>
@@ -296,3 +310,4 @@ function Editor({ id }) {
     </div>
   );
 }
+
