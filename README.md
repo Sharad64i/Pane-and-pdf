@@ -4,7 +4,7 @@ Private PDF tools that run entirely in your browser.
 
 Merge, split, annotate, reorganize, compress and convert PDFs without uploading anything. Files are processed on your device and stored in your browser, and no backend exists.
 
-> **Live site:** [_add your Vercel / Cloudflare Pages URL here](https://pane-and-pdf.vercel.app/)_
+> **Live site:** (https://pane-and-pdf.vercel.app/)
 
 ## Features
 
