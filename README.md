@@ -4,12 +4,13 @@ Private PDF tools that run entirely in your browser.
 
 Merge, split, annotate, reorganize, compress and convert PDFs without uploading anything. Files are processed on your device and stored in your browser, and no backend exists.
 
-> **Live site:** https://pane-and-pdf.vercel.app/
+> **Live site:** _add your Vercel / Cloudflare Pages URL here_
 
 ## Features
 
 | Tool | What it does |
 |---|---|
+| **Document studio** | Create a local rich-text draft, format text, set page dimensions, import PDF/DOCX/images, and export basic text PDFs. Drafts autosave in this browser. |
 | **Library** | Stores PDFs in your browser (IndexedDB). They are still there after a refresh. Shows storage use and lets you delete files or clear everything. |
 | **Viewer** | Scrollable preview with zoom. Pages render only when they come into view. |
 | **Images to PDF** | Combine JPG, PNG, WebP and other images into one PDF. Reorder them, and choose A4 or match-the-image page size. |
@@ -52,6 +53,7 @@ npm run build      # static site in dist/
 npm run preview    # serve the production build locally
 ```
 
+Commit `package-lock.json` after your first install so every deploy uses the same versions.
 
 ## Project structure
 
@@ -63,7 +65,7 @@ src/
   layout/       Top bar, Tools menu, page frame, privacy footer
   components/   Shared pieces: PdfPage, DocPicker, DocThumb, ResultPanel, StoragePanel
   pages/        One file per screen: Home, Library, Viewer, ImagesToPdf, PdfToImages,
-                MergeSplit, Organize, Annotate, Compress
+                MergeSplit, Organize, Annotate, Compress, Studio
   hooks/        useLibrary, usePdfDocument, useTask
   services/
     storage/    IndexedDB, Blob URL tracking, OPFS helpers, quota checks
@@ -73,9 +75,25 @@ src/
 ```
 
 Layers depend only downward: pages → components and ui → hooks → services → workers. Restyling `ui/` or `theme.css` cannot affect processing or storage.
+
+## Customizing
+
+| I want to change… | Edit |
+|---|---|
+| Colors, radius, fonts, dark mode | `src/styles/theme.css` |
+| Buttons, cards, dropzone, alerts | `src/ui/*` |
+| Top bar, Tools menu, footer | `src/layout/*` |
+| Home tiles and Tools menu entries | `src/config/tools.js` (add the route in `src/App.jsx`) |
+| Home screen | `src/pages/Home.jsx` |
+| App name, privacy text, limits | `src/config/app.js` (also the `<title>` in `index.html`) |
+| One tool's screen | `src/pages/<Tool>.jsx` |
+| Saving, loading, deleting documents | `src/services/storage/*` |
+| PDF editing logic | `src/workers/pdf.worker.js` and `src/services/pdf/engine.js` |
+
 ## Deploy
 
 The app is a static site. It needs no server.
+
 **Vercel:** import the repository, keep the Vite preset, deploy. `vercel.json` adds page routing and the security headers.
 
 **Cloudflare Pages:** build command `npm run build`, output directory `dist`. `public/_headers` adds the security headers, and page routing works by default.
@@ -90,6 +108,7 @@ After deploying, open the browser's Network tab, use a few tools, and confirm on
 - **Compress, "Reduce quality" mode** turns pages into images, so text can no longer be selected or searched.
 - **Editing existing text** works by placing a patch over the original line and drawing the new text on top, using standard PDF fonts (Helvetica, Times, Courier). The look can differ slightly from the original font, only Latin characters are supported, and the original text stays in the file's data underneath, so it is not a way to redact sensitive information. Scanned pages, rotated pages and rotated text can't be detected.
 - **Changing page order** with Organize discards the editable annotations (the marks already saved in the PDF stay).
+- **Document Studio** currently exports text and basic headings. Imported PDF/DOCX formatting, tables, images, and hyperlinks are not fully preserved in PDF export. PDF text import extracts readable text but does not reconstruct the original layout; OCR is not included.
 - **Private browsing** may block or limit IndexedDB. The app shows a clear message when storage is unavailable.
 - OPFS is included as an optional helper for temporary files. It is not used during processing yet.
 
@@ -107,4 +126,7 @@ After deploying, open the browser's Network tab, use a few tools, and confirm on
 
 Current versions of Chrome, Edge, Firefox and Safari. The app needs IndexedDB, Web Workers and Canvas.
 
+## License
+
+Add a license of your choice (for example MIT) as `LICENSE` before making the repository public.
 
